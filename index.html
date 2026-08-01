@@ -474,6 +474,7 @@
                 Voltar
               </button>
               <div id="verifyMessage" class="verify-message"></div>
+              <p class="dimSmall" id="deviceStatusNote" style="margin-top:10px;font-size:0.82rem;color:var(--kraft);"></p>
             </div>
             </div>
           </div>
@@ -634,6 +635,7 @@
     let googleConfirmed = false;
     let failedAttempts = 0;
     let verifiedBarcode = null;
+    let verifiedSorteioNumero = null;
     let currentStream = null;
     let barcodeScannerInstance = null;
     let barcodeScannerRunning = false;
@@ -641,101 +643,34 @@
     let barcodeScanGuidePending = false;
 
     /*
-      CÓDIGO DA ETIQUETA VENCEDORA
+      INTEGRAÇÃO COM O SISTEMA PDV (via backend próprio deste site)
       -----------------------------------------------------------------
-      O número da etiqueta NÃO fica mais escrito aqui em texto puro —
-      ele fica guardado como um "hash" (uma impressão digital criptográfica,
-      SHA-256). Isso significa que quem abrir o "Ver código-fonte" da página
-      não consegue ler qual é o código premiado, só vê uma sequência de
-      letras e números sem sentido.
-
-      Se um dia precisar trocar o código premiado, gere o hash SHA-256 do
-      novo número (ex.: em https://emn178.github.io/online-tools/sha256.html,
-      digitando o número e copiando o resultado) e substitua o valor abaixo.
+      Este site não guarda mais nenhum código premiado fixo. Cada
+      etiqueta escaneada é conferida em tempo real com o PDV da loja:
+      só é considerada premiada se aquele produto já tiver sido
+      vendido (dado baixa no estoque) por um valor que se qualifica.
+      A URL abaixo é do Web App do backend PRÓPRIO deste site
+      (Code_Etiqueta.gs, publicado numa conta Google separada do PDV) —
+      não é a URL do PDV.
     */
-    const KNOWN_BARCODE_HASH = '22792338e868f2abe8a46b922460a1f6c876d1b2f262462210e43f250256c6f9';
+    const ETIQUETA_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzxLl9DUZgeywzg2y5sh5VN6F0jb9RjoRVmGVZ2q_MfVEINwBmDCyLyjN1AAZXsamWKtg/exec';
 
-    // ---------- SHA-256 em JavaScript puro ----------
-    // Não depende de crypto.subtle, então funciona mesmo em contexto não seguro
-    // (ex.: arquivo aberto direto no navegador, ou site sem HTTPS), evitando o
-    // erro "Ocorreu um erro ao conferir o código" causado pela API Web Crypto
-    // ficar indisponível fora de contexto seguro.
-    async function sha256Hex(text) {
-      function rightRotate(value, amount) {
-        return (value >>> amount) | (value << (32 - amount));
+    // ---------- Identidade do dispositivo (para a trava antifraude) ----------
+    // Um ID aleatório, salvo neste navegador, usado só para o backend saber
+    // se ESTE aparelho já reivindicou um número. Não identifica a pessoa.
+    function obterDeviceId() {
+      let id = localStorage.getItem('etiquetaDeviceId');
+      if (!id) {
+        id = (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2)));
+        localStorage.setItem('etiquetaDeviceId', id);
       }
+      return id;
+    }
 
-      const maxWord = Math.pow(2, 32);
-      const words = [];
-      let asciiBitLength = text.length * 8;
-
-      const hash = (sha256Hex._h = sha256Hex._h || []);
-      const k = (sha256Hex._k = sha256Hex._k || []);
-      let primeCounter = k.length;
-
-      const isComposite = {};
-      for (let candidate = 2; primeCounter < 64; candidate++) {
-        if (!isComposite[candidate]) {
-          for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
-          hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
-          k[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
-        }
-      }
-
-      text += '\x80';
-      while ((text.length % 64) - 56) text += '\x00';
-
-      for (let i = 0; i < text.length; i++) {
-        const j = text.charCodeAt(i);
-        if (j >> 8) return '';
-        words[i >> 2] |= j << (((3 - i) % 4) * 8);
-      }
-      words[words.length] = (asciiBitLength / maxWord) | 0;
-      words[words.length] = asciiBitLength;
-
-      const workingHash = hash.slice(0, 8);
-      for (let j = 0; j < words.length; ) {
-        const w = words.slice(j, (j += 16));
-        const oldHash = workingHash.slice(0, 8);
-
-        for (let i = 0; i < 64; i++) {
-          const w15 = w[i - 15];
-          const w2 = w[i - 2];
-
-          const a = workingHash[0];
-          const e = workingHash[4];
-
-          const temp1 =
-            workingHash[7] +
-            (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
-            ((e & workingHash[5]) ^ (~e & workingHash[6])) +
-            k[i] +
-            (w[i] =
-              i < 16
-                ? w[i]
-                : (w[i - 16] +
-                    (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
-                    w[i - 7] +
-                    (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
-                  0);
-
-          const temp2 =
-            (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
-            ((a & workingHash[1]) ^ (a & workingHash[2]) ^ (workingHash[1] & workingHash[2]));
-
-          workingHash.pop();
-          workingHash.unshift((temp1 + temp2) | 0);
-          workingHash[4] = (workingHash[4] + temp1) | 0;
-        }
-
-        for (let i = 0; i < 8; i++) {
-          workingHash[i] = (workingHash[i] + oldHash[i]) | 0;
-        }
-      }
-
-      return workingHash
-        .map((num) => (num >>> 0).toString(16).padStart(8, '0'))
-        .join('');
+    async function chamarBackendEtiqueta(acao, extraParams = {}) {
+      const params = new URLSearchParams({ acao, deviceId: obterDeviceId(), ...extraParams });
+      const resp = await fetch(ETIQUETA_BACKEND_URL + '?' + params.toString(), { cache: 'no-store' });
+      return resp.json();
     }
 
     function showFeedback(text, type = 'success') {
@@ -859,6 +794,24 @@
       document.getElementById('scanStartIntro').style.display = 'none';
       document.getElementById('scanExperience').classList.add('visible');
       barcodeScanGuidePending = false;
+      atualizarStatusDispositivo();
+    }
+
+    // Mostra, na tela de escaneamento, se este aparelho já tem um número
+    // ativo no sorteio — e, se tiver, o link para liberar o aparelho.
+    async function atualizarStatusDispositivo() {
+      const nota = document.getElementById('deviceStatusNote');
+      if (!nota) return;
+      try {
+        const resultado = await chamarBackendEtiqueta('meuStatus');
+        if (resultado && resultado.ok && resultado.temNumero) {
+          nota.innerHTML = `Este aparelho já tem o número <b>${resultado.numero}</b> neste sorteio. <a href="#" onclick="trocarDispositivo();return false;">Trocar de dispositivo</a>`;
+        } else {
+          nota.textContent = '';
+        }
+      } catch (err) {
+        nota.textContent = '';
+      }
     }
 
     function showBarcodePositionGuide() {
@@ -1046,8 +999,8 @@
 
       const codeEl = document.getElementById('prizeCode');
       if (codeEl) {
-        const finalCode = verifiedBarcode || Math.random().toString(36).slice(2, 8).toUpperCase();
-        codeEl.textContent = `CÓDIGO: ${finalCode}`;
+        const finalCode = verifiedSorteioNumero || verifiedBarcode || Math.random().toString(36).slice(2, 8).toUpperCase();
+        codeEl.textContent = `NÚMERO DO SORTEIO: ${finalCode}`;
       }
     }
 
@@ -1199,25 +1152,32 @@
       const val = rawVal.trim().replace(/\D/g, '');
       if (!val) return;
 
-      // Log de diagnóstico: abra o console do navegador (F12) durante o teste
-      // para ver exatamente o que a câmera está lendo, caso o código correto
-      // ainda assim não seja aceito.
-      console.log('[verificação de etiqueta] valor bruto lido:', JSON.stringify(rawVal), '| valor normalizado:', val);
-
       isVerifying = true;
       msg.style.color = 'var(--kraft)';
-      msg.textContent = 'Conferindo código...';
+      msg.textContent = 'Conferindo código com a loja...';
 
       try {
-        const scannedHash = await sha256Hex(val);
+        const resultado = await chamarBackendEtiqueta('escanear', { barcode: val });
 
-        if (scannedHash === KNOWN_BARCODE_HASH) {
+        if (!resultado || resultado.ok !== true) {
+          msg.style.color = 'var(--danger)';
+          msg.textContent = resultado && resultado.error ? resultado.error : 'Não foi possível confirmar agora. Tente novamente em instantes.';
+          animateCard('error');
+          return;
+        }
+
+        if (resultado.status === 'premiado' || resultado.status === 'ja_tem_numero') {
           stopBarcodeScanner();
           verifiedBarcode = val;
+          verifiedSorteioNumero = resultado.numero;
           msg.style.color = 'var(--success)';
-          msg.textContent = 'Código válido! Etiqueta confirmada.';
+          msg.textContent = resultado.status === 'ja_tem_numero'
+            ? 'Este aparelho já tem um número neste sorteio.'
+            : 'Código válido! Etiqueta confirmada.';
           goToPrizeScreen();
         } else {
+          // status 'nao_premiado': o código existe mas ainda não foi vendido
+          // (ou já distribuiu todos os números daquela peça)
           failedAttempts += 1;
           msg.style.color = 'var(--danger)';
           if (failedAttempts >= 3) {
@@ -1245,6 +1205,24 @@
       } finally {
         isVerifying = false;
       }
+    }
+
+    // Libera este dispositivo para reivindicar um número diferente (ex.: a
+    // pessoa comprou mais de uma peça premiável e quer usar o mesmo aparelho
+    // pra registrar a segunda). O número anterior continua contando no
+    // sorteio para sempre — só a trava deste aparelho é removida.
+    async function trocarDispositivo() {
+      const confirmado = confirm('Isso libera este aparelho para escanear outra etiqueta. O número que você já tem continua valendo no sorteio. Deseja continuar?');
+      if (!confirmado) return;
+      try {
+        await chamarBackendEtiqueta('deslogar');
+      } catch (err) {
+        console.error('Erro ao trocar de dispositivo:', err);
+      }
+      verifiedBarcode = null;
+      verifiedSorteioNumero = null;
+      failedAttempts = 0;
+      resetAndGoIntro();
     }
 
     function goToPrizeScreen() {
@@ -1284,6 +1262,7 @@
       failedAttempts = 0;
       isVerifying = false;
       verifiedBarcode = null;
+      verifiedSorteioNumero = null;
       const startBtn = document.getElementById('startScanBtn');
       if (startBtn) startBtn.disabled = false;
       const msg = document.getElementById('verifyMessage');
