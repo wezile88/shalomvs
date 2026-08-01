@@ -660,6 +660,23 @@
     </div>
   </div>
 
+  <!-- ===== POPUP: parabéns, inscrito(a) no sorteio ===== -->
+  <div class="notsold-backdrop" id="sorteioEntryModal" role="dialog" aria-modal="true" aria-labelledby="sorteioEntryTitle">
+    <div class="notsold-card">
+      <div class="notsold-icon" style="background:rgba(67,209,122,0.12);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3 id="sorteioEntryTitle">Parabéns! Você já está inscrito(a) no sorteio</h3>
+      <p>Sua etiqueta foi confirmada e o seu número já está garantido no sorteio.</p>
+      <p class="highlight" id="sorteioEntryDateLine" style="display:none;"></p>
+      <div class="notsold-actions">
+        <button class="notsold-whats" id="sorteioEntryContinueBtn" type="button" onclick="closeSorteioEntryModalAndContinue()">
+          <span>Prosseguir</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== POPUP: etiqueta não confirmada como vendida ===== -->
   <div class="notsold-backdrop" id="notSoldModal" role="dialog" aria-modal="true" aria-labelledby="notSoldTitle">
     <div class="notsold-card">
@@ -780,6 +797,42 @@
 
     // Popup: etiqueta existe no cadastro, mas ainda não confirmada como
     // vendida no PDV. Orienta a pessoa a chamar o WhatsApp com uma foto.
+    // Guarda a função que deve rodar quando a pessoa tocar em "Prosseguir"
+    // no popup de "parabéns, inscrito no sorteio" (normalmente goToPrizeScreen).
+    let sorteioEntryOnContinue = null;
+
+    // Formata "2026-12-24" (o que o <input type="date"> do PDV salva) para
+    // "24/12/2026", sem depender de fuso horário (evita cair um dia antes/depois).
+    function formatarDataSorteio(dataIso) {
+      if (!dataIso || typeof dataIso !== 'string') return '';
+      const m = dataIso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return '';
+      return m[3] + '/' + m[2] + '/' + m[1];
+    }
+
+    function openSorteioEntryModal(dataSorteio, onContinue) {
+      const modal = document.getElementById('sorteioEntryModal');
+      const dateLine = document.getElementById('sorteioEntryDateLine');
+      const dataFormatada = formatarDataSorteio(dataSorteio);
+      if (dateLine) {
+        if (dataFormatada) {
+          dateLine.textContent = 'O sorteio será realizado em ' + dataFormatada + '.';
+          dateLine.style.display = 'block';
+        } else {
+          dateLine.style.display = 'none';
+        }
+      }
+      sorteioEntryOnContinue = typeof onContinue === 'function' ? onContinue : null;
+      if (modal) modal.classList.add('open');
+    }
+    function closeSorteioEntryModalAndContinue() {
+      const modal = document.getElementById('sorteioEntryModal');
+      if (modal) modal.classList.remove('open');
+      const proximaAcao = sorteioEntryOnContinue;
+      sorteioEntryOnContinue = null;
+      if (proximaAcao) proximaAcao();
+    }
+
     function openNotSoldModal() {
       const modal = document.getElementById('notSoldModal');
       if (modal) modal.classList.add('open');
@@ -1240,6 +1293,16 @@
         if (!resultado || resultado.ok !== true) {
           msg.style.color = 'var(--danger)';
           msg.textContent = resultado && resultado.error ? resultado.error : 'Não foi possível confirmar agora. Tente novamente em instantes.';
+          // DIAGNÓSTICO TEMPORÁRIO: mostra o motivo técnico real (debugReal),
+          // devolvido pelo Code_Etiqueta.gs, embaixo da mensagem amigável.
+          // Depois de descobrir e corrigir a causa, pode remover este bloco.
+          if (resultado && resultado.debugReal) {
+            const debugEl = document.createElement('div');
+            debugEl.style.cssText = 'margin-top:8px;font-size:11px;opacity:.75;word-break:break-all;';
+            debugEl.textContent = 'Diagnóstico: ' + resultado.debugReal;
+            msg.parentNode && msg.parentNode.insertBefore(debugEl, msg.nextSibling);
+          }
+          console.error('Falha ao verificar etiqueta — resposta completa:', resultado);
           animateCard('error');
           return;
         }
@@ -1252,7 +1315,10 @@
           msg.textContent = resultado.status === 'ja_tem_numero'
             ? 'Este aparelho já tem um número neste sorteio.'
             : 'Código válido! Etiqueta confirmada.';
-          goToPrizeScreen();
+          // Mostra o popup de "parabéns, inscrito no sorteio" (com a data
+          // configurada lá no PDV, se houver) antes de seguir para a
+          // animação/tela de retirada do prêmio.
+          openSorteioEntryModal(resultado.dataSorteio, goToPrizeScreen);
         } else if (resultado.motivo === 'nao_vendido') {
           // O produto existe no cadastro do PDV, mas ainda não está
           // confirmado como vendido (ou já distribuiu todos os números
