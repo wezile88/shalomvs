@@ -252,6 +252,51 @@
   .scan-modal-wait{ min-height:28px; margin-top:18px; color:var(--kraft); font-size:0.84rem; font-weight:700; display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .countdown-number{ color:#fff; font-family:var(--font-mono); font-size:1.3rem; font-weight:700; line-height:1; }
 
+  /* ===== POPUP: etiqueta não confirmada como vendida ===== */
+  .notsold-backdrop{
+    position:fixed; inset:0; z-index:60; display:none; place-items:center; padding:20px;
+    background:rgba(18,12,9,0.58); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    animation:fadeIn .25s ease;
+  }
+  .notsold-backdrop.open{ display:grid; }
+  .notsold-card{
+    width:min(440px, 100%); padding:30px 26px 26px; border-radius:24px; border:1px solid rgba(255,92,73,0.35);
+    background:linear-gradient(150deg,rgba(73,32,28,0.92),rgba(24,18,16,0.94));
+    box-shadow:0 28px 70px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.16);
+    position:relative; text-align:center;
+    animation:notsoldPop .45s cubic-bezier(.2,.9,.2,1) both;
+  }
+  @keyframes notsoldPop{
+    0%{ transform:scale(0.82) translateY(14px); opacity:0; }
+    60%{ transform:scale(1.03) translateY(0); opacity:1; }
+    100%{ transform:scale(1) translateY(0); opacity:1; }
+  }
+  .notsold-icon{
+    width:64px; height:64px; margin:0 auto 16px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,92,73,0.22), rgba(255,92,73,0.05));
+    border:1px solid rgba(255,92,73,0.4); display:grid; place-items:center;
+    animation:notsoldPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes notsoldPulse{
+    0%,100%{ box-shadow:0 0 0 0 rgba(255,92,73,0.3); }
+    50%{ box-shadow:0 0 0 12px rgba(255,92,73,0); }
+  }
+  .notsold-icon svg{ width:30px; height:30px; color:var(--danger); }
+  .notsold-card h3{ font-family:var(--font-display); font-weight:400; text-transform:uppercase; color:#fff; font-size:1.25rem; letter-spacing:0.01em; margin:0 0 12px; line-height:1.15; }
+  .notsold-card p{ color:#f3e4d0; line-height:1.68; font-size:0.95rem; margin:0 0 8px; }
+  .notsold-card p.highlight{ color:#FFD4A0; font-weight:700; }
+  .notsold-actions{ margin-top:20px; display:flex; flex-direction:column; gap:10px; }
+  .notsold-whats{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px 16px;
+    border-radius:999px; background:linear-gradient(90deg,#28C24A,#1E9E3B); color:#fff;
+    text-decoration:none; font-weight:800; font-size:0.96rem; box-shadow:0 14px 26px rgba(40,194,74,0.28);
+    transition:transform .2s ease, box-shadow .2s ease; border:none; cursor:pointer;
+    animation:notsoldPulse 1.6s ease-in-out infinite;
+  }
+  .notsold-whats:hover{ transform:translateY(-2px); }
+  .notsold-whats svg{ width:20px; height:20px; flex-shrink:0; }
+  .notsold-close{ background:rgba(255,255,255,0.07); color:#fff; border:1px solid var(--line); border-radius:999px; padding:12px 16px; font-weight:700; font-size:0.9rem; cursor:pointer; }
+
   .processing-screen, .prize-screen, .selfie-screen, .loading-screen, .final-share-screen, .fail-screen{ text-align:center; padding:6px 4px; }
 
   .fail-screen{ padding:14px 4px 6px; }
@@ -615,6 +660,26 @@
     </div>
   </div>
 
+  <!-- ===== POPUP: etiqueta não confirmada como vendida ===== -->
+  <div class="notsold-backdrop" id="notSoldModal" role="dialog" aria-modal="true" aria-labelledby="notSoldTitle">
+    <div class="notsold-card">
+      <div class="notsold-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+      </div>
+      <h3 id="notSoldTitle">Etiqueta não confirmada como vendida</h3>
+      <p>Ainda não conseguimos confirmar essa etiqueta como vendida no nosso sistema.</p>
+      <p class="highlight">Por favor, entre em contato com o nosso WhatsApp e envie uma foto da etiqueta.</p>
+      <p>Tire uma foto nítida da etiqueta e mande pelo WhatsApp para que a nossa equipe possa confirmar manualmente.</p>
+      <div class="notsold-actions">
+        <a class="notsold-whats" id="notSoldWhatsLink" href="https://wa.me/5598984971358?text=Ol%C3%A1%20Shalom%2C%20minha%20etiqueta%20n%C3%A3o%20foi%20confirmada%20como%20vendida.%20Vou%20enviar%20uma%20foto%20da%20etiqueta." target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a7.5 7.5 0 0 1-11.3 6.5L4 20l1.6-4.4A7.5 7.5 0 1 1 20 12Z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01" stroke-width="2.4"/></svg>
+          <span>Falar no WhatsApp e enviar foto</span>
+        </a>
+        <button class="notsold-close" type="button" onclick="closeNotSoldModal()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     const correctAnswers = { 1: 'Boneca', 2: 'Paz' };
@@ -711,6 +776,19 @@
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach((screen) => screen.classList.toggle('active', screen.id === screenId));
+    }
+
+    // Popup: etiqueta existe no cadastro, mas ainda não confirmada como
+    // vendida no PDV. Orienta a pessoa a chamar o WhatsApp com uma foto.
+    function openNotSoldModal() {
+      const modal = document.getElementById('notSoldModal');
+      if (modal) modal.classList.add('open');
+    }
+    function closeNotSoldModal() {
+      const modal = document.getElementById('notSoldModal');
+      if (modal) modal.classList.remove('open');
+      const startBtn = document.getElementById('startScanBtn');
+      if (startBtn) startBtn.style.display = 'inline-flex';
     }
 
     let scanModalTimer = null;
@@ -1175,9 +1253,19 @@
             ? 'Este aparelho já tem um número neste sorteio.'
             : 'Código válido! Etiqueta confirmada.';
           goToPrizeScreen();
+        } else if (resultado.motivo === 'nao_vendido') {
+          // O produto existe no cadastro do PDV, mas ainda não está
+          // confirmado como vendido (ou já distribuiu todos os números
+          // daquela quantidade vendida). Não é "código errado" — por isso
+          // não conta como tentativa falha. Orienta a pessoa a chamar o
+          // WhatsApp com uma foto da etiqueta, para confirmação manual.
+          stopBarcodeScanner();
+          msg.style.color = 'var(--danger)';
+          msg.textContent = 'Etiqueta não confirmada como vendida ainda.';
+          openNotSoldModal();
         } else {
-          // status 'nao_premiado': o código existe mas ainda não foi vendido
-          // (ou já distribuiu todos os números daquela peça)
+          // status 'nao_premiado', motivo 'nao_existe': o código de barras
+          // não foi encontrado no cadastro do PDV (etiqueta errada/digitação).
           failedAttempts += 1;
           msg.style.color = 'var(--danger)';
           if (failedAttempts >= 3) {
