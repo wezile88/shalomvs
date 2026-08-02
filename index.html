@@ -731,10 +731,24 @@
       etiqueta escaneada é conferida em tempo real com o PDV da loja:
       só é considerada premiada se aquele produto já tiver sido
       vendido (dado baixa no estoque) por um valor que se qualifica.
-      A URL abaixo é a MESMA URL do Web App do PDV (Code.gs) — não
-      existe mais um backend separado só pra etiqueta.
+
+      O link do backend do PDV NÃO fica mais fixo aqui no meio do HTML —
+      ele é lido do arquivo "config.json" (na mesma pasta deste site).
+      Se um dia o link do Apps Script mudar de novo (ex.: criaram uma
+      implantação nova sem querer), basta editar o config.json — não
+      precisa mexer neste arquivo grande.
     */
-    const ETIQUETA_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbxozzj37mCBSFePUhwZU9cu-gT8TtQ7cCOJ6TJ49ES9K-FmUAigZBBdndQIruZkFl2k/exec';
+    let ETIQUETA_BACKEND_URL = null;
+    let _configCarregando = null;
+    async function garantirConfigCarregado() {
+      if (ETIQUETA_BACKEND_URL) return ETIQUETA_BACKEND_URL;
+      if (!_configCarregando) {
+        _configCarregando = fetch('config.json', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(cfg => { ETIQUETA_BACKEND_URL = cfg.pdvBackendUrl; return ETIQUETA_BACKEND_URL; });
+      }
+      return _configCarregando;
+    }
 
     // ---------- Identidade do dispositivo (para a trava antifraude) ----------
     // Um ID aleatório, salvo neste navegador, usado só para o backend saber
@@ -749,8 +763,9 @@
     }
 
     async function chamarBackendEtiqueta(acao, extraParams = {}) {
+      const backendUrl = await garantirConfigCarregado();
       const params = new URLSearchParams({ acao, deviceId: obterDeviceId(), ...extraParams });
-      const resp = await fetch(ETIQUETA_BACKEND_URL + '?' + params.toString(), { cache: 'no-store' });
+      const resp = await fetch(backendUrl + '?' + params.toString(), { cache: 'no-store' });
       return resp.json();
     }
 
