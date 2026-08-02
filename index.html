@@ -725,17 +725,16 @@
     let barcodeScanGuidePending = false;
 
     /*
-      INTEGRAÇÃO COM O SISTEMA PDV (via backend próprio deste site)
+      INTEGRAÇÃO COM O SISTEMA PDV (direto, sem backend intermediário)
       -----------------------------------------------------------------
       Este site não guarda mais nenhum código premiado fixo. Cada
       etiqueta escaneada é conferida em tempo real com o PDV da loja:
       só é considerada premiada se aquele produto já tiver sido
       vendido (dado baixa no estoque) por um valor que se qualifica.
-      A URL abaixo é do Web App do backend PRÓPRIO deste site
-      (Code_Etiqueta.gs, publicado numa conta Google separada do PDV) —
-      não é a URL do PDV.
+      A URL abaixo é a MESMA URL do Web App do PDV (Code.gs) — não
+      existe mais um backend separado só pra etiqueta.
     */
-    const ETIQUETA_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwKhu673yUebIrhOW-1wzEmxc2X3jyrGDjY5eusPdMc_AEqSn50FFEnUS15dtdoNT4Xvw/exec';
+    const ETIQUETA_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyfzBnfxGXSV2ow_Dsl0F7hCIgPaVlMOeQZGsqB8_kM0n7AwT6rR8BL_SfnNKD_ee_5/exec';
 
     // ---------- Identidade do dispositivo (para a trava antifraude) ----------
     // Um ID aleatório, salvo neste navegador, usado só para o backend saber
@@ -934,7 +933,7 @@
       const nota = document.getElementById('deviceStatusNote');
       if (!nota) return;
       try {
-        const resultado = await chamarBackendEtiqueta('meuStatus');
+        const resultado = await chamarBackendEtiqueta('etiquetaMeuStatus');
         if (resultado && resultado.ok && resultado.temNumero) {
           nota.innerHTML = `Este aparelho já tem o número <b>${resultado.numero}</b> neste sorteio. <a href="#" onclick="trocarDispositivo();return false;">Trocar de dispositivo</a>`;
         } else {
@@ -1288,20 +1287,11 @@
       msg.textContent = 'Conferindo código com a loja...';
 
       try {
-        const resultado = await chamarBackendEtiqueta('escanear', { barcode: val });
+        const resultado = await chamarBackendEtiqueta('etiquetaEscanear', { barcode: val });
 
         if (!resultado || resultado.ok !== true) {
           msg.style.color = 'var(--danger)';
           msg.textContent = resultado && resultado.error ? resultado.error : 'Não foi possível confirmar agora. Tente novamente em instantes.';
-          // DIAGNÓSTICO TEMPORÁRIO: mostra o motivo técnico real (debugReal),
-          // devolvido pelo Code_Etiqueta.gs, embaixo da mensagem amigável.
-          // Depois de descobrir e corrigir a causa, pode remover este bloco.
-          if (resultado && resultado.debugReal) {
-            const debugEl = document.createElement('div');
-            debugEl.style.cssText = 'margin-top:8px;font-size:11px;opacity:.75;word-break:break-all;';
-            debugEl.textContent = 'Diagnóstico: ' + resultado.debugReal;
-            msg.parentNode && msg.parentNode.insertBefore(debugEl, msg.nextSibling);
-          }
           console.error('Falha ao verificar etiqueta — resposta completa:', resultado);
           animateCard('error');
           return;
@@ -1369,7 +1359,7 @@
       const confirmado = confirm('Isso libera este aparelho para escanear outra etiqueta. O número que você já tem continua valendo no sorteio. Deseja continuar?');
       if (!confirmado) return;
       try {
-        await chamarBackendEtiqueta('deslogar');
+        await chamarBackendEtiqueta('etiquetaDeslogar');
       } catch (err) {
         console.error('Erro ao trocar de dispositivo:', err);
       }
