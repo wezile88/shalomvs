@@ -4,6 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Shalom Variedades | Etiqueta Premiada</title>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyDZ47BV3BodLHfGtQhE9pD7Yyk7EVeM6Xc",
+    authDomain: "etiqueta-9ed2c.firebaseapp.com",
+    projectId: "etiqueta-9ed2c",
+    storageBucket: "etiqueta-9ed2c.firebasestorage.app",
+    messagingSenderId: "339246029324",
+    appId: "1:339246029324:web:6dc5aa69521df8ef326c29"
+  });
+</script>
 <meta name="description" content="Descubra se a sua etiqueta é a etiqueta premiada da Shalom Variedades." />
 <meta name="theme-color" content="#0B0A08" />
 <link rel="shortcut icon" href="BackgroundEraser_20260707_160416872.jpg" type="image/jpeg">
@@ -174,7 +186,6 @@
   .btn.secondary{ background:rgba(255,255,255,0.07); color:#fff; border:1px solid var(--line); }
   .btn:disabled{ opacity:0.5; cursor:not-allowed; box-shadow:none; transform:none; }
 
-  .quiz-header{ text-align:center; margin-bottom:18px; }
   .progress{ height:8px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; margin-bottom:18px; }
   .progress-bar{ height:100%; width:0%; background:linear-gradient(90deg, var(--orange), var(--gold)); transition:width .35s ease; }
 
@@ -182,19 +193,6 @@
   .feedback.show{ opacity:1; transform:translateY(0); }
   .feedback.error{ color:var(--danger); }
   .feedback.success{ color:var(--success); }
-
-  .quiz-box{ display:none; animation:fadeIn .35s ease; }
-  .quiz-box.active{ display:block; }
-  .question{ font-family:var(--font-body); font-size:1.08rem; font-weight:800; margin-bottom:14px; color:#fff; }
-
-  .options button{
-    display:block; width:100%; margin:9px 0; padding:13px 15px; border-radius:14px; border:1px solid var(--line);
-    background:rgba(255,255,255,0.05); color:var(--paper); font-family:var(--font-body); font-size:0.96rem;
-    text-align:left; cursor:pointer; transition:transform .2s ease, border-color .2s ease, background .2s ease;
-  }
-  .options button:hover{ transform:translateY(-2px); border-color:rgba(255,106,0,0.4); background:rgba(255,255,255,0.09); }
-  .options button.correct{ border-color:rgba(67,209,122,0.55); background:rgba(67,209,122,0.16); animation:pulseGreen .45s ease; }
-  .options button.wrong{ border-color:rgba(255,92,73,0.55); background:rgba(255,92,73,0.14); animation:shake .35s ease; }
 
   .verify-grid{ display:grid; grid-template-columns:1fr; gap:16px; }
   @media (min-width:660px){ .verify-grid{ grid-template-columns: 1fr 1.05fr; align-items:start; } }
@@ -444,39 +442,29 @@
             <div class="status-pill" id="statusPill">Ação pendente. Confirme Instagram + Google para prosseguir.</div>
           </div>
 
-          <button class="btn primary" id="continueBtn" onclick="startChallenge()" disabled>Prosseguir para o desafio</button>
+          <button class="btn primary" id="continueBtn" onclick="goToNotifScreen()" disabled>Prosseguir</button>
         </div>
       </section>
 
-      <!-- ===================== TELA 2: QUIZ ===================== -->
-      <section class="screen" id="quizScreen">
-        <div class="quiz-header">
-          <span class="eyebrow-tag">Desafio rápido</span>
-          <h2 class="headline-md">Duas perguntas sobre a Shalom</h2>
-          <p class="copy center" style="margin-bottom:16px;">Acerte as duas para seguir até a verificação oficial da etiqueta.</p>
-        </div>
+      <!-- ===================== TELA 2: ATIVAR NOTIFICAÇÕES ===================== -->
+      <section class="screen" id="notifScreen">
+        <div class="intro-content">
+          <span class="eyebrow-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v1.4C7.2 8.1 6 10 6 12.2V16l-1.6 2.4A1 1 0 0 0 5.2 20h13.6a1 1 0 0 0 .8-1.6L18 16v-3.8c0-2.2-1.2-4.1-3-4.8V6a3 3 0 0 0-3-3Z"/><path d="M9.5 20a2.5 2.5 0 0 0 5 0"/></svg>
+            Fique por dentro
+          </span>
+          <h1 class="headline-lg">Ative as notificações</h1>
+          <p class="copy center">Ative as notificações e confirme tudo. É seguro — é só para a gente te notificar por aqui de tudo sobre o sorteio (inclusive se você for a pessoa sorteada) e outras novidades da loja.</p>
 
-        <div class="feedback" id="feedbackMessage" aria-live="polite"></div>
-        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-
-        <div class="quiz-box active" id="quiz1">
-          <div class="question">1) Quem é a dona da loja?</div>
-          <div class="options">
-            <button onclick="checkAnswer(1, 'Boneca', this)">Boneca</button>
-            <button onclick="checkAnswer(1, 'Maria', this)">Maria</button>
-            <button onclick="checkAnswer(1, 'Ana', this)">Ana</button>
-            <button onclick="checkAnswer(1, 'Lúcia', this)">Lúcia</button>
+          <div class="action-card">
+            <button class="social-link" id="notifBtn" type="button" onclick="ativarNotificacoes()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v1.4C7.2 8.1 6 10 6 12.2V16l-1.6 2.4A1 1 0 0 0 5.2 20h13.6a1 1 0 0 0 .8-1.6L18 16v-3.8c0-2.2-1.2-4.1-3-4.8V6a3 3 0 0 0-3-3Z"/><path d="M9.5 20a2.5 2.5 0 0 0 5 0"/></svg>
+              <span>Ativar notificações</span>
+            </button>
+            <div class="status-pill" id="notifStatusPill">Toque acima para ativar (é opcional, mas recomendado).</div>
           </div>
-        </div>
 
-        <div class="quiz-box" id="quiz2">
-          <div class="question">2) O que significa o nome Shalom?</div>
-          <div class="options">
-            <button onclick="checkAnswer(2, 'Paz', this)">Paz</button>
-            <button onclick="checkAnswer(2, 'Amor', this)">Amor</button>
-            <button onclick="checkAnswer(2, 'Estilo', this)">Estilo</button>
-            <button onclick="checkAnswer(2, 'Moda', this)">Moda</button>
-          </div>
+          <button class="btn primary" id="notifContinueBtn" onclick="goToVerificationFromNotif()" disabled>Aguarde 8s para continuar</button>
         </div>
       </section>
 
@@ -699,9 +687,6 @@
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
-    const correctAnswers = { 1: 'Boneca', 2: 'Paz' };
-    const feedbackMessage = document.getElementById('feedbackMessage');
-    const progressBar = document.getElementById('progressBar');
     const introScreen = document.getElementById('introScreen');
     const continueBtn = document.getElementById('continueBtn');
     const statusPill = document.getElementById('statusPill');
@@ -767,16 +752,6 @@
       const params = new URLSearchParams({ acao, deviceId: obterDeviceId(), ...extraParams });
       const resp = await fetch(backendUrl + '?' + params.toString(), { cache: 'no-store' });
       return resp.json();
-    }
-
-    function showFeedback(text, type = 'success') {
-      feedbackMessage.textContent = text;
-      feedbackMessage.className = `feedback show ${type}`;
-    }
-
-    function clearFeedback() {
-      feedbackMessage.className = 'feedback';
-      feedbackMessage.textContent = '';
     }
 
     function animateCard(type) {
@@ -1059,43 +1034,157 @@
       statusPill.classList.toggle('confirmed', bothConfirmed);
     }
 
-    function startChallenge() {
+    function goToNotifScreen() {
       if (!instagramConfirmed || !googleConfirmed) return;
-      showScreen('quizScreen');
-      clearFeedback();
-      showStep('quiz1', 0);
-    }
-
-    function showStep(stepId, progressValue) {
-      document.getElementById('quiz1').classList.toggle('active', stepId === 'quiz1');
-      document.getElementById('quiz2').classList.toggle('active', stepId === 'quiz2');
-      progressBar.style.width = `${progressValue}%`;
-      clearFeedback();
-    }
-
-    function markButtons(button, type) {
-      document.querySelectorAll('.options button').forEach((btn) => btn.classList.remove('correct', 'wrong'));
-      button.classList.add(type);
-      setTimeout(() => button.classList.remove(type), 500);
-    }
-
-    function checkAnswer(quizNumber, selected, button) {
-      const isCorrect = selected === correctAnswers[quizNumber];
-      if (isCorrect) {
-        markButtons(button, 'correct');
-        animateCard('success');
-        createSparkles();
-        showFeedback('Resposta certa! Excelente escolha.', 'success');
-        if (quizNumber === 1) {
-          setTimeout(() => showStep('quiz2', 50), 450);
-        } else {
-          setTimeout(() => showScreen('verificationScreen'), 450);
-        }
-      } else {
-        markButtons(button, 'wrong');
-        animateCard('error');
-        showFeedback('Resposta incorreta. Tente novamente.', 'error');
+      showScreen('notifScreen');
+      iniciarContagemNotifScreen();
+      // Se a pessoa já tinha aceitado notificações numa visita anterior
+      // (mesmo navegador), não precisa pedir de novo — só reflete o estado.
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const pill = document.getElementById('notifStatusPill');
+        const btn = document.getElementById('notifBtn');
+        if (pill) { pill.textContent = 'Notificações já ativadas neste aparelho.'; pill.classList.add('confirmed'); }
+        if (btn) btn.classList.add('confirmed');
       }
+    }
+
+    // Botão "Continuar" desta tela só libera 8 segundos depois de entrar
+    // nela — dá tempo da pessoa realmente ler e decidir sobre a notificação,
+    // mas nunca trava quem não quiser ativar (é sempre opcional).
+    let notifCountdownTimer = null;
+    function iniciarContagemNotifScreen() {
+      const btn = document.getElementById('notifContinueBtn');
+      if (!btn) return;
+      let segundos = 8;
+      btn.disabled = true;
+      btn.textContent = `Aguarde ${segundos}s para continuar`;
+      if (notifCountdownTimer) clearInterval(notifCountdownTimer);
+      notifCountdownTimer = setInterval(() => {
+        segundos -= 1;
+        if (segundos > 0) {
+          btn.textContent = `Aguarde ${segundos}s para continuar`;
+        } else {
+          clearInterval(notifCountdownTimer);
+          notifCountdownTimer = null;
+          btn.disabled = false;
+          btn.textContent = 'Continuar';
+        }
+      }, 1000);
+    }
+
+    function goToVerificationFromNotif() {
+      showScreen('verificationScreen');
+    }
+
+    // Pede a permissão de notificação do navegador. É sempre opcional: se a
+    // pessoa negar ou o navegador não suportar, ela continua normalmente —
+    // só não vai receber os avisos que a loja mandar pelo PDV.
+    // Gera o token de push deste aparelho (é o que permite mandar notificação
+    // mesmo com o navegador fechado) e salva no backend.
+    async function registrarTokenPushFirebase() {
+      try {
+        if (!swRegistrationEtiqueta) return;
+        const messaging = firebase.messaging();
+        const token = await messaging.getToken({
+          vapidKey: 'BJ7CfY6XEZJPl4kXBLuN5RxBGvrmyPbWqAvCzAs0ywmTki0woI3FdD9TwuNb9aTI7cC3rEz_fe0sQfoH01dAr0I',
+          serviceWorkerRegistration: swRegistrationEtiqueta
+        });
+        if (token) await chamarBackendEtiqueta('etiquetaSalvarTokenPush', { token });
+      } catch (err) {
+        console.error('Não foi possível gerar o token de push:', err);
+      }
+    }
+
+    async function ativarNotificacoes() {
+      const pill = document.getElementById('notifStatusPill');
+      const btn = document.getElementById('notifBtn');
+      if (typeof Notification === 'undefined') {
+        if (pill) pill.textContent = 'Seu navegador não suporta notificações, mas você já pode continuar.';
+        return;
+      }
+      try {
+        const permissao = await Notification.requestPermission();
+        if (permissao === 'granted') {
+          if (btn) btn.classList.add('confirmed');
+          if (pill) { pill.textContent = 'Notificações ativadas! Vamos te avisar por aqui sobre o sorteio.'; pill.classList.add('confirmed'); }
+          await registrarServiceWorkerEtiqueta();
+          iniciarChecagemNotificacoes();
+          await registrarTokenPushFirebase();
+        } else {
+          if (pill) pill.textContent = 'Notificações não ativadas — você pode continuar normalmente.';
+        }
+      } catch (err) {
+        console.error('Erro ao pedir permissão de notificação:', err);
+        if (pill) pill.textContent = 'Não foi possível ativar agora. Você ainda pode continuar.';
+      }
+    }
+
+    // Service worker próprio deste site, só para exibir as notificações com
+    // ícone/vibração (mais "bonitas" que o alerta padrão do navegador).
+    // Continua funcionando mesmo se o cadastro falhar — cai no fallback
+    // "new Notification(...)" dentro de mostrarNotificacaoEtiqueta().
+    let swRegistrationEtiqueta = null;
+    async function registrarServiceWorkerEtiqueta() {
+      if (!('serviceWorker' in navigator)) return null;
+      try {
+        swRegistrationEtiqueta = await navigator.serviceWorker.register('sw-etiqueta.js');
+        return swRegistrationEtiqueta;
+      } catch (err) {
+        console.error('Não foi possível ativar o service worker de notificações:', err);
+        return null;
+      }
+    }
+
+    function mostrarNotificacaoEtiqueta(titulo, corpo) {
+      const opcoes = {
+        body: corpo,
+        icon: 'BackgroundEraser_20260707_160416872.jpg',
+        badge: 'BackgroundEraser_20260707_160416872.jpg',
+        vibrate: [120, 60, 120],
+        tag: 'shalom-etiqueta-' + Date.now()
+      };
+      if (swRegistrationEtiqueta) {
+        swRegistrationEtiqueta.showNotification(titulo, opcoes).catch(() => {
+          try { new Notification(titulo, opcoes); } catch (e) {}
+        });
+        return;
+      }
+      try { new Notification(titulo, opcoes); } catch (e) { console.error('Não foi possível mostrar a notificação:', e); }
+    }
+
+    // Checagem periódica (a cada 20s, só enquanto esta aba estiver aberta e
+    // com a permissão concedida) por novas mensagens enviadas pelo PDV. Cada
+    // aparelho guarda no próprio localStorage o horário da última notificação
+    // já mostrada, pra nunca repetir a mesma mensagem duas vezes.
+    let notifPollTimer = null;
+    function iniciarChecagemNotificacoes() {
+      if (notifPollTimer) return; // já está rodando
+      checarNovasNotificacoes();
+      notifPollTimer = setInterval(checarNovasNotificacoes, 20000);
+    }
+
+    async function checarNovasNotificacoes() {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      try {
+        const desde = localStorage.getItem('etiquetaUltimaNotifVista') || '';
+        const resultado = await chamarBackendEtiqueta('etiquetaMinhasNotificacoes', { desde });
+        if (resultado && resultado.ok && Array.isArray(resultado.notificacoes)) {
+          resultado.notificacoes.forEach((n) => mostrarNotificacaoEtiqueta(n.titulo || 'Shalom Variedades', n.mensagem || ''));
+          if (resultado.agora) localStorage.setItem('etiquetaUltimaNotifVista', resultado.agora);
+        }
+      } catch (err) {
+        console.error('Erro ao checar notificações:', err);
+      }
+    }
+
+    // Se a pessoa voltar a este site depois (mesmo navegador) e já tiver
+    // aceitado notificações antes, volta a checar sozinho, sem precisar
+    // passar pela tela de novo.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      registrarServiceWorkerEtiqueta().then(function () {
+        iniciarChecagemNotificacoes();
+        registrarTokenPushFirebase();
+      });
     }
 
     function stopCamera() {
