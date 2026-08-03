@@ -729,8 +729,19 @@
       if (ETIQUETA_BACKEND_URL) return ETIQUETA_BACKEND_URL;
       if (!_configCarregando) {
         _configCarregando = fetch('config.json', { cache: 'no-store' })
-          .then(r => r.json())
-          .then(cfg => { ETIQUETA_BACKEND_URL = cfg.pdvBackendUrl; return ETIQUETA_BACKEND_URL; });
+          .then(r => {
+            if (!r.ok) throw new Error('config.json indisponível');
+            return r.json();
+          })
+          .then(cfg => {
+            const url = (cfg && cfg.pdvBackendUrl) ? cfg.pdvBackendUrl : APPSCRIPT_URL;
+            ETIQUETA_BACKEND_URL = url;
+            return ETIQUETA_BACKEND_URL;
+          })
+          .catch(() => {
+            ETIQUETA_BACKEND_URL = APPSCRIPT_URL;
+            return ETIQUETA_BACKEND_URL;
+          });
       }
       return _configCarregando;
     }
@@ -1083,7 +1094,12 @@
     // mesmo com o navegador fechado) e salva no backend.
     async function registrarTokenPushFirebase() {
       try {
+        if (!('serviceWorker' in navigator)) return;
+        if (!swRegistrationEtiqueta) {
+          swRegistrationEtiqueta = await registrarServiceWorkerEtiqueta();
+        }
         if (!swRegistrationEtiqueta) return;
+        await navigator.serviceWorker.ready;
         const messaging = firebase.messaging();
         const token = await messaging.getToken({
           vapidKey: 'BJ7CfY6XEZJPl4kXBLuN5RxBGvrmyPbWqAvCzAs0ywmTki0woI3FdD9TwuNb9aTI7cC3rEz_fe0sQfoH01dAr0I',
@@ -1128,6 +1144,7 @@
       if (!('serviceWorker' in navigator)) return null;
       try {
         swRegistrationEtiqueta = await navigator.serviceWorker.register('sw-etiqueta.js');
+        await navigator.serviceWorker.ready;
         return swRegistrationEtiqueta;
       } catch (err) {
         console.error('Não foi possível ativar o service worker de notificações:', err);
