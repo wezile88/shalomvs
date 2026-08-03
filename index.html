@@ -761,8 +761,21 @@
     async function chamarBackendEtiqueta(acao, extraParams = {}) {
       const backendUrl = await garantirConfigCarregado();
       const params = new URLSearchParams({ acao, deviceId: obterDeviceId(), ...extraParams });
-      const resp = await fetch(backendUrl + '?' + params.toString(), { cache: 'no-store' });
-      return resp.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      try {
+        const resp = await fetch(backendUrl + '?' + params.toString(), { cache: 'no-store', signal: controller.signal });
+        const text = await resp.text();
+        let json = null;
+        try { json = text ? JSON.parse(text) : null; } catch (e) {}
+        if (!resp.ok) {
+          const message = (json && json.error) || text || 'Erro ao comunicar com o backend.';
+          throw new Error(message);
+        }
+        return json || {};
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
 
     function animateCard(type) {
@@ -1412,7 +1425,8 @@
 
         if (!resultado || resultado.ok !== true) {
           msg.style.color = 'var(--danger)';
-          msg.textContent = resultado && resultado.error ? resultado.error : 'Não foi possível confirmar agora. Tente novamente em instantes.';
+          const detalhe = resultado && (resultado.error || resultado.message || resultado.motivo);
+          msg.textContent = detalhe || 'Não foi possível confirmar agora. Tente novamente em instantes.';
           console.error('Falha ao verificar etiqueta — resposta completa:', resultado);
           animateCard('error');
           return;
@@ -1462,7 +1476,8 @@
         // a tela ficar "travada" sem nenhuma resposta.
         console.error('Erro ao verificar o código da etiqueta:', err);
         msg.style.color = 'var(--danger)';
-        msg.textContent = 'Ocorreu um erro ao conferir o código. Toque em "Escanear etiqueta" e tente novamente.';
+        const detalhe = err && err.message ? err.message : 'Ocorreu um erro ao conferir o código. Toque em "Escanear etiqueta" e tente novamente.';
+        msg.textContent = detalhe;
         const startBtn = document.getElementById('startScanBtn');
         if (startBtn) startBtn.style.display = 'inline-flex';
         const stopBtn = document.getElementById('stopScanBtn');
